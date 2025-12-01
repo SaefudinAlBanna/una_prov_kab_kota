@@ -173,7 +173,7 @@ class SchoolListView extends StatelessWidget {
         contentPadding: EdgeInsets.all(12),
         leading: CircleAvatar(
           backgroundColor: Colors.blue[50],
-          child: Text(sekolah.jenjang ?? 'S', style: TextStyle(color: Colors.blue[800], fontWeight: FontWeight.bold)),
+          child: Text(sekolah.jenjang ?? 'S', style: TextStyle(color: Colors.blue[800], fontWeight: FontWeight.bold, fontSize: 14)),
         ),
         title: Row(
           children: [
@@ -201,58 +201,94 @@ class SchoolListView extends StatelessWidget {
 
 
   void _showAddDialog(BuildContext context) {
+    // Controller Existing
     final npsnC = TextEditingController();
     final namaC = TextEditingController();
     final alamatC = TextEditingController();
-    final kecamatanC = TextEditingController(); // Manual input dulu biar mudah
+    final kecamatanC = TextEditingController(); 
     final districtC = TextEditingController(); 
     
+    // Controller Baru (Untuk Akun)
+    final emailAdminC = TextEditingController();
+    final namaAdminC = TextEditingController();
+
     String selectedJenjang = 'SD';
     String selectedStatus = 'Negeri';
     bool isProv = controller.authC.userModel.value?.role == 'dinas_prov';
 
     Get.defaultDialog(
-      title: "Tambah Sekolah Baru",
+      title: "Tambah Sekolah & Akun Admin",
       radius: 10,
       contentPadding: EdgeInsets.all(20),
-      content: SingleChildScrollView(
+      content: SingleChildScrollView( // Scrollable agar tidak overflow
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text("Data Sekolah", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[900])),
+            SizedBox(height: 10),
             TextField(controller: npsnC, decoration: InputDecoration(labelText: "NPSN", border: OutlineInputBorder(), isDense: true)),
             SizedBox(height: 10),
             TextField(controller: namaC, decoration: InputDecoration(labelText: "Nama Sekolah", border: OutlineInputBorder(), isDense: true)),
             SizedBox(height: 10),
             TextField(controller: alamatC, decoration: InputDecoration(labelText: "Alamat Jalan", border: OutlineInputBorder(), isDense: true)),
             SizedBox(height: 10),
-            TextField(controller: kecamatanC, decoration: InputDecoration(labelText: "Nama Kecamatan", border: OutlineInputBorder(), isDense: true, hintText: "Contoh: Kecamatan Depok")),
+            TextField(controller: kecamatanC, decoration: InputDecoration(labelText: "Kecamatan", border: OutlineInputBorder(), isDense: true)),
             SizedBox(height: 10),
-            DropdownButtonFormField<String>(
-              value: selectedJenjang,
-              items: ['SD','PKBM', 'SMP', 'SMA', 'SMK', 'SLB'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-              onChanged: (v) => selectedJenjang = v!,
-              decoration: InputDecoration(labelText: "Jenjang", border: OutlineInputBorder(), isDense: true),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: selectedJenjang,
+                    items: ['SD', 'PKBM', 'SMP', 'SMA', 'SMK', 'SLB'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                    onChanged: (v) => selectedJenjang = v!,
+                    decoration: InputDecoration(labelText: "Jenjang", border: OutlineInputBorder(), isDense: true),
+                  ),
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: selectedStatus,
+                    items: ['Negeri', 'Swasta'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                    onChanged: (v) => selectedStatus = v!,
+                    decoration: InputDecoration(labelText: "Status", border: OutlineInputBorder(), isDense: true),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: 10),
-            DropdownButtonFormField<String>(
-              value: selectedStatus,
-              items: ['Negeri', 'Swasta'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-              onChanged: (v) => selectedStatus = v!,
-              decoration: InputDecoration(labelText: "Status", border: OutlineInputBorder(), isDense: true),
-            ),
+            
             if (isProv) ...[
               SizedBox(height: 10),
-              TextField(controller: districtC, decoration: InputDecoration(labelText: "Nama Kota/Kabupaten", border: OutlineInputBorder(), isDense: true)),
-            ]
+              TextField(controller: districtC, decoration: InputDecoration(labelText: "Kabupaten/Kota", border: OutlineInputBorder(), isDense: true)),
+            ],
+
+            SizedBox(height: 20),
+            Divider(thickness: 2),
+            Text("Akun Kepala Sekolah / TU", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[900])),
+            SizedBox(height: 5),
+            Text("Password Default: pendidikan", style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic)),
+            SizedBox(height: 10),
+            
+            TextField(controller: namaAdminC, decoration: InputDecoration(labelText: "Nama Admin/Kepsek", border: OutlineInputBorder(), isDense: true, prefixIcon: Icon(Icons.person))),
+            SizedBox(height: 10),
+            TextField(controller: emailAdminC, decoration: InputDecoration(labelText: "Email Login", border: OutlineInputBorder(), isDense: true, prefixIcon: Icon(Icons.email))),
           ],
         ),
       ),
-      textConfirm: "Simpan",
+      textConfirm: "Simpan & Buat Akun",
       textCancel: "Batal",
       confirmTextColor: Colors.white,
       buttonColor: Colors.blue[800],
       onConfirm: () {
+        // Validasi Sederhana
+        if (emailAdminC.text.isEmpty || namaC.text.isEmpty) {
+          Get.snackbar("Error", "Nama Sekolah dan Email Admin wajib diisi");
+          return;
+        }
+
         controller.addSchool(
           namaC.text, npsnC.text, alamatC.text, selectedJenjang, kecamatanC.text, selectedStatus,
+          emailAdminC.text, // Param baru
+          namaAdminC.text,  // Param baru
           targetDistrictId: isProv ? districtC.text : null
         );
       }

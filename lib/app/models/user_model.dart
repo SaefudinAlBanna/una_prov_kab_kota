@@ -11,6 +11,12 @@ class UserModel {
   String? scopeProv;  // Kode Provinsi (untuk Dinas Prov)
   String? scopeDist;  // Kode Kab/Kota (untuk Dinas Kab)
   String? idSekolah;  // ID Sekolah (untuk Pegawai/Ortu)
+  String? nip;       // Tambahan untuk profil lengkap
+  String? noHp;      // Tambahan untuk profil lengkap
+
+  // FIELD KEAMANAN BARU
+  bool mustChangePassword;
+  bool isProfileComplete;
 
   UserModel({
     required this.uid,
@@ -21,6 +27,11 @@ class UserModel {
     this.scopeProv,
     this.scopeDist,
     this.idSekolah,
+
+    this.nip,
+    this.noHp,
+    this.mustChangePassword = false,
+    this.isProfileComplete = true, // Default true untuk user lama/dinas
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
@@ -34,6 +45,12 @@ class UserModel {
       scopeProv: data['scopeProv'],
       scopeDist: data['scopeDist'],
       idSekolah: data['idSekolah'],
+
+      nip: data['nip'],
+      noHp: data['noHp'],
+      // Parsing logic boolean
+      mustChangePassword: data['mustChangePassword'] ?? false,
+      isProfileComplete: data['isProfileComplete'] ?? true, // Default true jika field tidak ada
     );
   }
 
@@ -46,5 +63,10 @@ class UserModel {
     'scopeProv': scopeProv,
     'scopeDist': scopeDist,
     'idSekolah': idSekolah,
-  };
+
+    'nip': nip,
+      'noHp': noHp,
+      'mustChangePassword': mustChangePassword,
+      'isProfileComplete': isProfileComplete,
+    };
 }

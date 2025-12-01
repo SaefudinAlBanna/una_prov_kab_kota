@@ -13,7 +13,8 @@ class AuthController extends GetxController {
   final Rxn<User> _firebaseUser = Rxn<User>();
   final Rxn<UserModel> currentUserModel = Rxn<UserModel>(); 
   
-  Rxn<UserModel> get userModel => currentUserModel; 
+  Rxn<UserModel> get userModel => currentUserModel;
+  User? get user => auth.currentUser;
   final RxBool isLoading = false.obs;
 
   @override
@@ -69,9 +70,25 @@ class AuthController extends GetxController {
   }
 
   void _navigateBasedOnRole(UserModel user) {
-    print("🚦 NAVIGASI KE DASHBOARD. Role: ${user.role}");
+    print("🚦 CEK NAVIGASI UNTUK: ${user.role}");
     
-    // [FIX WINDOWS THREADING] Pastikan UI update di Main Thread
+    // [BARU] 1. CEK GANTI PASSWORD
+    if (user.mustChangePassword == true) {
+      print("🔒 User wajib ganti password. Redirecting...");
+      // Pastikan Route ini nanti dibuat
+      Get.offAllNamed('/force-change-password'); 
+      return;
+    }
+
+    // [BARU] 2. CEK KELENGKAPAN PROFIL (Khusus Pegawai Sekolah)
+    if (user.role == 'pegawai' && user.isProfileComplete == false) {
+      print("📝 User wajib melengkapi profil. Redirecting...");
+      // Pastikan Route ini nanti dibuat
+      Get.offAllNamed('/force-complete-profile'); 
+      return;
+    }
+
+    // 3. JIKA LOLOS CEK, MASUK DASHBOARD
     WidgetsBinding.instance.addPostFrameCallback((_) {
        switch (user.role) {
         case 'dinas_prov':
@@ -108,7 +125,8 @@ class AuthController extends GetxController {
 
     } on FirebaseAuthException catch (e) {
       print("❌ LOGIN GAGAL (Auth): ${e.message}");
-      Get.snackbar("Login Gagal", e.message ?? "Terjadi kesalahan", 
+      // Get.snackbar("Login Gagal", e.message ?? "Terjadi kesalahan", 
+      Get.snackbar("Login Gagal", "Pastikan email dan password sudah benar.!" ?? "Terjadi kesalahan", 
         backgroundColor: Colors.red, colorText: Colors.white);
     } catch (e) {
        print("❌ LOGIN GAGAL (General): $e");
@@ -124,108 +142,3 @@ class AuthController extends GetxController {
     Get.offAllNamed(Routes.LOGIN);
   }
 }
-
-
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:flutter/material.dart';
-// import 'package:get/get.dart';
-// import '../models/user_model.dart';
-// import '../routes/app_pages.dart';
-
-// class AuthController extends GetxController {
-//   final FirebaseAuth auth = FirebaseAuth.instance;
-//   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  
-//   late final Stream<User?> authStateChanges;
-//   final Rxn<User> _firebaseUser = Rxn<User>();
-//   final Rxn<UserModel> currentUserModel = Rxn<UserModel>(); // Data User Lengkap
-//   final RxBool isLoading = false.obs;
-
-//   @override
-//   void onInit() {
-//     super.onInit();
-//     authStateChanges = auth.authStateChanges();
-//     _firebaseUser.bindStream(authStateChanges);
-    
-//     // Listener: Setiap kali status login berubah, cek role
-//     ever(_firebaseUser, _handleAuthChanged);
-//   }
-
-//   Future<void> _handleAuthChanged(User? user) async {
-//     if (user == null) {
-//       Get.offAllNamed(Routes.LOGIN); // Ganti Routes.ROOT jadi LOGIN biar jelas
-//     } else {
-//       await _fetchUserProfile(user.uid);
-//     }
-//   }
-
-//   Future<void> _fetchUserProfile(String uid) async {
-//     try {
-//       DocumentSnapshot doc = await firestore.collection('users').doc(uid).get();
-      
-//       if (doc.exists) {
-//         UserModel userModel = UserModel.fromFirestore(doc);
-//         currentUserModel.value = userModel;
-        
-//         // --- ROUTING LOGIC (TRAFFIC POLICE) ---
-//         _navigateBasedOnRole(userModel);
-        
-//       } else {
-//         Get.snackbar("Error", "Data user tidak ditemukan di database.");
-//         await logout();
-//       }
-//     } catch (e) {
-//       Get.snackbar("Error", "Gagal mengambil profil: $e");
-//     }
-//   }
-
-//   void _navigateBasedOnRole(UserModel user) {
-//     print("🚦 Navigasi Role: ${user.role}");
-    
-//     switch (user.role) {
-//       case 'dinas_prov':
-//         // Get.offAllNamed(Routes.DINAS_PROV_DASHBOARD); 
-//         // Sementara kita arahkan ke Home biasa dulu sampai modul jadi
-//         Get.offAllNamed(Routes.HOME); 
-//         break;
-        
-//       case 'dinas_kab':
-//         // Ini target utama kita sekarang
-//         Get.offAllNamed(Routes.HOME); // Nanti ganti Routes.DINAS_KAB_DASHBOARD
-//         break;
-        
-//       case 'pegawai':
-//         // Sekolah
-//         Get.offAllNamed(Routes.HOME); // Nanti ganti Routes.SCHOOL_DASHBOARD
-//         break;
-        
-//       case 'wali_murid':
-//         Get.offAllNamed(Routes.HOME); // Nanti ganti Routes.PARENT_DASHBOARD
-//         break;
-        
-//       default:
-//         Get.snackbar("Akses Ditolak", "Role tidak dikenali.");
-//         logout();
-//     }
-//   }
-
-//   Future<void> login(String email, String password) async {
-//     try {
-//       isLoading.value = true;
-//       await auth.signInWithEmailAndPassword(email: email.trim(), password: password.trim());
-//       // Listener _handleAuthChanged akan otomatis jalan setelah ini
-//     } on FirebaseAuthException catch (e) {
-//       Get.snackbar("Login Gagal", e.message ?? "Terjadi kesalahan", 
-//         backgroundColor: Colors.red, colorText: Colors.white);
-//     } finally {
-//       isLoading.value = false;
-//     }
-//   }
-
-//   Future<void> logout() async {
-//     await auth.signOut();
-//     currentUserModel.value = null;
-//     Get.offAllNamed(Routes.LOGIN);
-//   }
-// }

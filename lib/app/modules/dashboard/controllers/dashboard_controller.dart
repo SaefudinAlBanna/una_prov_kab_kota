@@ -1,23 +1,27 @@
 import 'package:get/get.dart';
-
 import '../../../controllers/auth_controller.dart';
+import '../../../services/app_config.dart'; // Import config
 
 class DashboardController extends GetxController {
-  // Instance AuthController
   final AuthController authC = Get.find<AuthController>();
 
-  // Logic cek Role
+  // Logic Cek Role (Gatekeeper)
   bool get isDinas {
-    String role = authC.userModel.value?.role ?? ''; 
+    final role = authC.userModel.value?.role;
     return role == 'dinas_prov' || role == 'dinas_kab';
   }
 
   bool get isSekolah {
-    String role = authC.userModel.value?.role ?? '';
+    final role = authC.userModel.value?.role;
     return role == 'pegawai'; 
   }
 
-  // Greeting Message
+  bool get isWaliMurid {
+    final role = authC.userModel.value?.role;
+    return role == 'wali_murid';
+  }
+
+  // Greeting Message (Tetap dipertahankan)
   String get greeting {
     var hour = DateTime.now().hour;
     if (hour < 12) return 'Selamat Pagi';
