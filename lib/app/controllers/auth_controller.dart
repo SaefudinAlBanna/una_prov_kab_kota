@@ -17,18 +17,23 @@ class AuthController extends GetxController {
   User? get user => auth.currentUser;
   final RxBool isLoading = false.obs;
 
+  bool isPaused = false; 
+
   @override
   void onInit() {
     super.onInit();
     authStateChanges = auth.authStateChanges();
     _firebaseUser.bindStream(authStateChanges);
     
-    // Stream hanya untuk Auto-Login saat aplikasi baru dibuka/restart
     ever(_firebaseUser, (User? user) {
+      // [TAMBAHAN BARU] Cek apakah sedang dipause?
+      if (isPaused) {
+        print("⏸️ Auth Listener dipause (Sedang create user baru).");
+        return; 
+      }
+
       print("👻 STREAM AUTH TRIGGERED: User is ${user == null ? 'Null' : 'Found'}");
       if (user != null) {
-        // Jangan navigasi otomatis jika kita sedang loading manual (login form)
-        // Biarkan fungsi login() yang menangani navigasinya agar Thread Safe
         if (!isLoading.value) {
           _fetchUserProfile(user.uid);
         }
